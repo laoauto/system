@@ -1256,7 +1256,7 @@ async function loadDashboard() {
               <tr>
                 <td>
                   <div class="cell-name">${r.customer?.name || '-'}</div>
-                  ${r.customer?.phone ? `<a href="https://wa.me/${r.customer.phone.replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 WhatsApp</a>` : ''}
+                  ${r.customer?.phone ? `<a href="https://wa.me/${String(r.customer.phone).replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 WhatsApp</a>` : ''}
                 </td>
                 <td>${formatWebsites(r.websites, 1)}</td>
                 <td>${r.endDate}</td>
@@ -1307,9 +1307,14 @@ async function loadCustomers() {
 
 function renderCustomers() {
   const q = (document.getElementById('customerSearch')?.value || '').toLowerCase();
-  const filtered = state.customers.filter(c =>
-    (c.name + c.phone + c.email).toLowerCase().includes(q)
-  );
+  // ກັນ null/number fields
+  const filtered = state.customers.filter(c => {
+    c.name     = String(c.name     || '');
+    c.phone    = String(c.phone    || '');
+    c.whatsapp = String(c.whatsapp || '');
+    c.email    = String(c.email    || '');
+    return (c.name + c.phone + c.email).toLowerCase().includes(q);
+  });
   if (!filtered.length) {
     document.getElementById('customersTable').innerHTML = emptyState('ບໍ່ພົບລູກຄ້າ', 'ລອງຄົ້ນຫາດ້ວຍຄຳໃໝ່');
     return;
@@ -1322,7 +1327,7 @@ function renderCustomers() {
           <td class="cell-name" style="cursor:pointer" onclick="viewCustomer('${c.id}')">${c.name}</td>
           <td>${c.phone || '-'}</td>
           <td>${c.email || '-'}</td>
-          <td>${c.whatsapp ? `<a href="https://wa.me/${c.whatsapp.replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 WhatsApp</a>` : '-'}</td>
+          <td>${c.whatsapp ? `<a href="https://wa.me/${String(c.whatsapp).replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 WhatsApp</a>` : '-'}</td>
           <td>${fmtDate(c.createdAt)}</td>
           <td><div class="actions-cell">
             <button class="btn btn-ghost btn-icon btn-sm" onclick="viewCustomer('${c.id}')" title="ລາຍລະອຽດ">👁</button>
@@ -1385,7 +1390,7 @@ async function viewCustomer(id) {
           <div class="detail-row"><span class="detail-key">ID</span><span class="detail-val" style="font-size:11px">${c.id}</span></div>
           <div class="detail-row"><span class="detail-key">ສ້າງວັນທີ</span><span class="detail-val">${fmtDate(c.createdAt)}</span></div>
           <div class="detail-row"><span class="detail-key">ໝາຍເຫດ</span><span class="detail-val">${c.notes || '-'}</span></div>
-          ${c.whatsapp ? `<div class="detail-row"><span class="detail-key">WhatsApp</span><span class="detail-val"><a href="https://wa.me/${c.whatsapp.replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 ສົ່ງຂໍ້ຄວາມ</a></span></div>` : ''}
+          ${c.whatsapp ? `<div class="detail-row"><span class="detail-key">WhatsApp</span><span class="detail-val"><a href="https://wa.me/${String(c.whatsapp).replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 ສົ່ງຂໍ້ຄວາມ</a></span></div>` : ''}
         </div>
       </div>
       <h4 style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--gold-dk);margin-bottom:12px">ການເຊົ່າ (${c.rentals.length})</h4>
@@ -1452,10 +1457,13 @@ function renderRentals() {
 
 function rentalRow(r, compact = false) {
   const c = state.customers.find(x => x.id === r.customerId) || {};
+  c.name     = String(c.name     || '-');
+  c.whatsapp = String(c.whatsapp || '');
+  c.phone    = String(c.phone    || '');
   return `<tr>
     <td>
       <div class="cell-name">${c.name || '-'}</div>
-      ${c.whatsapp ? `<a href="https://wa.me/${c.whatsapp.replace(/\D/g,'')}" target="_blank" class="wa-btn" style="margin-top:4px">💬</a>` : ''}
+      ${c.whatsapp ? `<a href="https://wa.me/${String(c.whatsapp).replace(/\D/g,'')}" target="_blank" class="wa-btn" style="margin-top:4px">💬</a>` : ''}
     </td>
     <td>${formatWebsites(r.websites, 2)}</td>
     <td>
@@ -1511,7 +1519,7 @@ async function viewRental(id) {
           <h4>ລູກຄ້າ</h4>
           <div class="detail-row"><span class="detail-key">ຊື່</span><span class="detail-val">${c.name || '-'}</span></div>
           <div class="detail-row"><span class="detail-key">ເບີໂທ</span><span class="detail-val">${c.phone || '-'}</span></div>
-          ${c.whatsapp ? `<div class="detail-row"><span class="detail-key">WhatsApp</span><span class="detail-val"><a href="https://wa.me/${c.whatsapp.replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 ສົ່ງຂໍ້ຄວາມ</a></span></div>` : ''}
+          ${c.whatsapp ? `<div class="detail-row"><span class="detail-key">WhatsApp</span><span class="detail-val"><a href="https://wa.me/${String(c.whatsapp).replace(/\D/g,'')}" target="_blank" class="wa-btn">💬 ສົ່ງຂໍ້ຄວາມ</a></span></div>` : ''}
         </div>
         <div class="detail-section">
           <h4>ການເຊົ່າ</h4>
@@ -1732,7 +1740,7 @@ async function loadExpiring() {
             <td>${r.endDate}</td>
             <td><span class="badge ${r.daysLeft <= 1 ? 'badge-expired' : 'badge-expiring'}">${r.daysLeft} ວັນ</span></td>
             <td>
-              ${c.whatsapp ? `<a href="https://wa.me/${c.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent('ສະບາຍດີ '+c.name+', ໜ້າເວັບໄຊຂອງທ່ານໃກ້ໝົດກຳນົດໃນ '+r.daysLeft+' ວັນ ('+r.endDate+'). ກາລຸນາຕິດຕໍ່ LaoAuto ເພື່ອຕໍ່ອາຍຸ.')}" target="_blank" class="wa-btn">💬 WhatsApp</a>` : '-'}
+              ${c.whatsapp ? `<a href="https://wa.me/${String(c.whatsapp).replace(/\D/g,'')}?text=${encodeURIComponent('ສະບາຍດີ '+c.name+', ໜ້າເວັບໄຊຂອງທ່ານໃກ້ໝົດກຳນົດໃນ '+r.daysLeft+' ວັນ ('+r.endDate+'). ກາລຸນາຕິດຕໍ່ LaoAuto ເພື່ອຕໍ່ອາຍຸ.')}" target="_blank" class="wa-btn">💬 WhatsApp</a>` : '-'}
             </td>
             <td><div class="actions-cell">
               <button class="btn btn-primary btn-sm" onclick="openRenewModal('${r.id}')">🔄 ຕໍ່ອາຍຸ</button>
