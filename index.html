@@ -1070,7 +1070,7 @@ textarea { resize: vertical; min-height: 80px; }
 // ============================================================
 //  CONFIG — ← ໃສ່ URL ຂອງ Google Apps Script Web App ທ່ານ
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzfpq6cIJR9X3jTDsvu1d_AYLgy1XDkK2iqKb9jRl-WyiBSOqdHhQZb_k87k19uHhQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxFtfGCJsn5hwtD8a3nqHvwrbokyg1geltN3qcBKiq-PxmIJ1Ho1kHa8ZO4cdHyty8p/exec';
 
 // ============================================================
 //  STATE
@@ -1087,27 +1087,78 @@ let state = {
 };
 
 // ============================================================
-//  API
+//  API — ໃຊ້ JSONP ແກ້ CORS ຈາກ GitHub Pages
 // ============================================================
-async function api(action, params = {}) {
-  const url = new URL(GAS_URL);
-  url.searchParams.set('action', action);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url);
-  const json = await res.json();
-  if (!json.success) throw new Error(json.error || 'API error');
-  return json.data;
+
+// GET ຜ່ານ JSONP
+function api(action, params = {}) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const url = new URL(GAS_URL);
+    url.searchParams.set('action', action);
+    url.searchParams.set('callback', cbName);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Request timeout — ກວດສອບ GAS URL ແລະ deployment'));
+    }, 15000);
+
+    window[cbName] = (json) => {
+      cleanup();
+      if (json.success) resolve(json.data);
+      else reject(new Error(json.error || 'API error'));
+    };
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      const s = document.getElementById(cbName);
+      if (s) s.remove();
+    }
+
+    const script = document.createElement('script');
+    script.id  = cbName;
+    script.src = url.toString();
+    script.onerror = () => { cleanup(); reject(new Error('ບໍ່ສາມາດເຊື່ອມຕໍ່ GAS — ກວດ URL ໃນ index.html')); };
+    document.head.appendChild(script);
+  });
 }
 
-async function apiPost(action, data = {}) {
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, data }),
+// POST ຜ່ານ JSONP (ສົ່ງຂໍ້ມູນ encode ໃນ URL param)
+function apiPost(action, data = {}) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const url = new URL(GAS_URL);
+    url.searchParams.set('action', action);
+    url.searchParams.set('callback', cbName);
+    url.searchParams.set('payload', JSON.stringify(data));
+    url.searchParams.set('method', 'POST');
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Request timeout'));
+    }, 15000);
+
+    window[cbName] = (json) => {
+      cleanup();
+      if (json.success) resolve(json.data);
+      else reject(new Error(json.error || 'API error'));
+    };
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      const s = document.getElementById(cbName);
+      if (s) s.remove();
+    }
+
+    const script = document.createElement('script');
+    script.id  = cbName;
+    script.src = url.toString();
+    script.onerror = () => { cleanup(); reject(new Error('Network error')); };
+    document.head.appendChild(script);
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.error || 'API error');
-  return json.data;
 }
 
 // ============================================================
